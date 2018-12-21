@@ -87,9 +87,6 @@
  */
 var tool = require("../../util/tool");
 module.exports = Vue.extend({
-  install: function(Vue) {
-    Vue.component("Loading", LoadingComponent);
-  },
   data: () => {
     return {
       queue: [],
