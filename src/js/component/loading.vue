@@ -64,6 +64,6 @@ module.exports = Vue.extend({
   updated: () => {
     // console.log('loading updated', this.$data);
   },
-  template: '__template__'
+  template: `__template__`
 });
 </script>

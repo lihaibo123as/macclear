@@ -29,8 +29,8 @@ const gulp = require('gulp'),
             '/**',
             ' * <%= pkg.name %> <%= pkg.version %>',
             ' * <%= pkg.description %>',
-            ' * Author <%= pkg.author %>',
-            ' * Licensed under <%= pkg.license %>',
+            ' * Copyright (c) <%= date.year %> <<%= pkg.author %>>',
+            ' * MIT License - http://opensource.org/licenses/mit-license.php',
             ' * Released on: <%= date.month %> <%= date.day %>, <%= date.year %>',
             ' */',
             ''].join('\n'),
@@ -127,6 +127,7 @@ foal.task('text', (src, dist) => {
 foal.task('vue', (src, dist) => {
     // console.log('[vue]'.info, src, dist);
     gulp.src(src).pipe(VueModule(vueModuleConfig))
+        .pipe(header(site.banner + site.strict, { pkg: site.pkg, date: site.date }))
         .pipe(rename({ extname: ".js" }))
         .pipe(gulp.dest(dist));
 });
@@ -255,5 +256,5 @@ gulp.task('source_watch', () => {
     foal.run(tfs.parse(paths.source, "**/*.*", true));
 });
 
-gulp.task('watch', ['source_watch']);
+gulp.task('watch', ['source', 'source_watch']);
 gulp.task('default', ['source']);

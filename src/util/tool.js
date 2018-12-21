@@ -1,3 +1,9 @@
+/**
+ * Created by PhpStorm.
+ * @author: 李海波 <lihaibo123as@163.com>
+ * @date: 2018/12/14
+ * @time: 2:53 PM
+ */
 var fs = require('fs');
 var path = require('path');
 nw.loadCss = function (config, callback) {

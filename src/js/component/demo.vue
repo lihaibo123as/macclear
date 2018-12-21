@@ -9,7 +9,6 @@
 </template>
 
 <script>
-var Vue = require("vue/all");
 module.exports = Vue.extend({
   data: () => {
     return {
@@ -36,7 +35,7 @@ module.exports = Vue.extend({
     test() {},
     title: "titlewatch"
   },
-  template : '__template__',//必须是单引号 模板替换标识可在配置内更改
+  template : `__template__`,//必须是单引号 模板替换标识可在配置内更改
   beforeCreate: function() {
     console.group("beforeCreate 创建前状态===============》", this);
     console.log("%c%s", "color:red", "el     : " + this.$el); //undefined
