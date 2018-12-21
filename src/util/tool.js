@@ -53,11 +53,10 @@ Date.prototype.format = function (fmt) {
     return fmt;
 }
 var tool = {
-    msg: function (msg) {
+    msg: function (msg, type, config) {
         var driver = window.msgdriver;
         if (driver) {
-            driver.alert('消息消息');
-            driver.alert('消息消息', 'danger');
+            driver.alert(msg, type, config);
         } else {
             console.warn('消息驱动未初始化', window.msgdriver);
         }

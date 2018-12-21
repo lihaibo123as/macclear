@@ -6,26 +6,46 @@
   z-index: 2001;
   width: 100%;
   height: 100%;
-  background: rgba(51, 51, 51, 0.32);
+  // background: rgba(51, 51, 51, 0.32);
   padding: 15px;
   pointer-events: none;
-  .left {
+  .right {
     height: 100%;
-    width: 100%;
     float: right;
     width: 300px;
-    p {
-      pointer-events: auto;
-      padding: 10px;
-      width: 300px;
+  }
+  .center {
+    height: 100%;
+    width: 300px;
+    margin: auto;
+  }
+  p {
+    position: relative;
+    pointer-events: auto;
+    padding: 10px;
+    width: 300px;
+    box-shadow: 0 0 15px #2f7f80;
+    &:hover {
       box-shadow: 0 0 15px #333;
-      &:hover {
-        box-shadow: 0 0 15px #2f7f80;
+    }
+    .close {
+      float: right;
+      width: 20px;
+      height: 20px;
+    }
+    progress {
+      -webkit-appearance: none;
+      height: 2px;
+      width: 100%;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      &::-webkit-progress-bar {
+        background-color: rgba(251, 251, 251, 0.32);
       }
-      .close {
-        float: right;
-        width: 20px;
-        height: 20px;
+
+      &::-webkit-progress-value {
+        background-color: orange;
       }
     }
   }
@@ -33,7 +53,7 @@
 </style>
 <template>
   <div class="message">
-    <div class="left">
+    <div class="center">
       <p
         class="bg-primary"
         v-for="(item, index) in queue"
@@ -47,20 +67,36 @@
           class="close"
           v-on:click="delmsg(item.uuid)"
         >&times;</button>
-        {{item.msg}}|{{item.delay}}Nullam id dolor id nibh ultricies vehicula ut id elit.
-        <progress></progress>
+        {{item.msg}}
+        <progress v-if="item.progress" :value="item.progress" :max="item.delay"></progress>
       </p>
     </div>
   </div>
 </template>
 
 <script>
+/**
+ * msgdriver 组建使用方式
+ * app容器添加 <msgdriver></msgdriver>
+ * msg:消息
+ * type:"primary", "success", "info", "warning", "danger"
+ * config:{
+ * delay:3000//延迟几秒关闭,不设置则需要用户点击关闭
+ * }
+ * window.msgdriver.alert(msg, type, config);
+ */
 var tool = require("../../util/tool");
 module.exports = Vue.extend({
+  install: function(Vue) {
+    Vue.component("Loading", LoadingComponent);
+  },
   data: () => {
     return {
       queue: [],
-      type: ["primary", "success", "info", "warning", "danger"]
+      type: ["primary", "success", "info", "warning", "danger"],
+      config: {
+        delay: 2500
+      }
     };
   },
   props: {},
@@ -74,27 +110,42 @@ module.exports = Vue.extend({
       });
     },
     startdelay: function(item) {
-      var that = this;
       if (item.delay > 0) {
         // console.log("开启 time", item);
-        item.timeflag = setTimeout(function() {
-          that.delmsg(item.uuid);
-        }, item.delay);
+        item.timeflag = setTimeout(() => {
+          this.delmsg(item.uuid);
+        }, item.delay + 200);
+
+        item.progressflag = setInterval(() => {
+          if (item.progress > item.delay) {
+            this.clearProgress(item);
+          } else {
+            item.progress += 50;
+          }
+        }, 50);
+      }
+    },
+    clearProgress: function(item) {
+      if (item.progressflag) {
+        clearInterval(item.progressflag);
+        item.progress = 0;
+        item.progressflag = undefined;
       }
     },
     stopdelay: function(item) {
       if (item.delay > 0 && item.timeflag) {
         // console.log("暂停 time", item);
         clearTimeout(item.timeflag);
+        this.clearProgress(item);
       }
     },
-    alert: function(msg, type, hide) {
+    alert: function(msg, type, config) {
       var that = this;
       if (typeof msg == "string" && msg) {
         if (this.type.indexOf(type) == -1) {
           type = "info";
         }
-        var delay = 3000;
+        var delay = this.config.delay;
         switch (type) {
           case "danger":
             delay = 0;
@@ -106,9 +157,10 @@ module.exports = Vue.extend({
           {
             uuid: tool.uuid(),
             msg: msg,
-            delay: delay
+            delay: delay,
+            progress: 0
           },
-          hide
+          config
         );
         this.startdelay(item);
         this.queue.push(item);
@@ -119,7 +171,7 @@ module.exports = Vue.extend({
     }
   },
   created: function() {
-    window.msgdriver = this;
+    window.msgdriver = this; //开发全局接口
   },
   template: `__template__` //必须是单引号 模板替换标识可在配置内更改
 });
