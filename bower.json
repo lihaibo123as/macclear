@@ -1,0 +1,20 @@
+{
+  "name": "MacClear",
+  "description": "帮助Mac 用户完全删除 App ,清理历史残留文件,提交 bug :154624410",
+  "main": "index.html",
+  "authors": [
+    "lihaibo123as@163.com"
+  ],
+  "license": "MIT License - http://opensource.org/licenses/mit-license.php",
+  "homepage": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "dist"
+  ],
+  "dependencies": {
+    "toastr": "^2.1.3"
+  }
+}
