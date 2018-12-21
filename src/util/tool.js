@@ -53,6 +53,28 @@ Date.prototype.format = function (fmt) {
     return fmt;
 }
 var tool = {
+    msg: function (msg) {
+        var driver = window.msgdriver;
+        if (driver) {
+            driver.alert('消息消息');
+            driver.alert('消息消息', 'danger');
+        } else {
+            console.warn('消息驱动未初始化', window.msgdriver);
+        }
+    },
+    uuid: function (prefix, length) {
+        if (length > 0) {
+            var uuid = Math.random().toString(36).substr(2);
+            return (prefix ? prefix : '') + uuid.substr(uuid.length - length);
+        }
+        var d = new Date().getTime();
+        var uuid = 'xxxxxxxx_xxxx_4xxx_yxxx_xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = (d + Math.random() * 16) % 16 | 0;
+            d = Math.floor(d / 16);
+            return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+        return (prefix ? prefix : '') + uuid;
+    },
     demo: () => {
         return new Promise((resolve, reject) => {
             try {

@@ -12,6 +12,7 @@
 
 1. 安装 nwjs 开发版,开发版,开发版 重要的事情说三遍
 2. npm install
+3. bower install
 
 #### 使用说明
 

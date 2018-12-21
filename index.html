@@ -12,10 +12,11 @@
 
 <body>
     <div class="app-body " id='app'>
+        <msgdriver></msgdriver>
         <loading v-bind:loading.sync="status.loading"></loading>
         <div class="container">
             <div class="page-header">
-                <h1>Example page header
+                <h1>Example page header <button v-on:click="msg" class="btn btn-default">消息</button>
                 </h1>
             </div>
             <div class="row ">
@@ -94,6 +95,7 @@
     </div>
     <script src="node_modules/nw-dev/lib/dev.js" data-ignore="src/*|data.json|*.md|*.tmp"></script>
     <script src="node_modules/vue/dist/vue.js"></script>
+    <!-- <script src=""></script> -->
     <script>
         var app = require('./dist/main');
         app.start('#app');
