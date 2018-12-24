@@ -2,14 +2,26 @@ module.exports = {
   start: function (selecter) {
     const os = require("./util/os"),
       conf = require("./config"),
-      tool = require("./util/tool");
-    console.log("os:", os);
+      tool = require("./util/tool"),
+      store = require('store');
+    //调试模式
     if (conf.debug) {
       os.debug();
+      console.log("os:", os);
       console.log("nw", nw);
       console.log("conf", conf);
       console.log("process", process);
       console.log("window", nw.Window.get().window);
+
+      //本地存储
+      if (!store.get('visit')) {
+        store.set('visit', { count: 1 });
+      } else {
+        var visit = store.get('visit');
+        visit.count++;
+        store.set('visit', visit);
+      }
+      console.log('visit', store, store.get('visit'));
     }
 
     //全局组件
@@ -29,6 +41,7 @@ module.exports = {
         apps: [],
         dir: conf.search_path ? conf.search_path : "/",
         status: {
+          visit: store.get('visit'),
           search: "",
           order: "name",
           orderBy: "asc",

@@ -31,6 +31,7 @@
     "bootstrap": "^3.4.0",
     "bower": "^1.8.4",
     "iconutil": "^1.0.2",
+    "store": "^2.0.12",
     "vue": "^2.5.21",
     "vue-lazyload": "^1.2.6"
   }
