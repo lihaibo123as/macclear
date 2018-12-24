@@ -62,8 +62,8 @@
                 <div class="panel-heading">
                     <strcolor v-bind:search="status.search" v-bind:text="app.name"></strcolor>
                     <small v-if="app.info.plist">版本:{{app.info.plist.CFBundleShortVersionString}}</small>
-                    <small v-if="app.info.plist">版本:{{app.info.plist.CFBundleShortVersionString}}</small>
-                    <small v-if="app.info.plist">版本:{{app.info.plist.CFBundleShortVersionString}}</small>
+                    <small v-if="app.info.plist">包:{{app.info.plist.CFBundleIdentifier}}</small>
+                    <small v-if="app.info.plist">应用:{{app.info.plist.CFBundleName}}</small>
                 </div>
                 <div class="panel-body">
                     <div class="media">

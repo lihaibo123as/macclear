@@ -7,7 +7,7 @@ module.exports = {
     //调试模式
     if (conf.debug) {
       os.debug();
-      console.log("os:", os);
+      console.log("os:", os, store);
       console.log("nw", nw);
       console.log("conf", conf);
       console.log("process", process);
@@ -21,7 +21,7 @@ module.exports = {
         visit.count++;
         store.set('visit', visit);
       }
-      console.log('visit', store, store.get('visit'));
+      console.log('visit', store.get('visit'));
     }
 
     //全局组件
@@ -149,10 +149,16 @@ module.exports = {
                 that.apps.push(Object.assign({}, that.objtpl.app, app));
               });
               console.log("app", that.apps);
+              tool.msg(`搜索 App完成`, 'success');
               that.status.loading = false;
             },
             function (err) {
               console.log("查询错误", err.message);
+              // tool.msg(err.message, 'primary', { delay: 0 });
+              // tool.msg(err.message, 'success', { delay: 0 });
+              // tool.msg(err.message, 'info', { delay: 0 });
+              // tool.msg(err.message, 'warning', { delay: 0 });
+              tool.msg(`搜索 APP错误:${err.message}`, 'danger');
             }
           );
           console.log("xinit", this);

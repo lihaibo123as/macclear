@@ -24,10 +24,31 @@
     pointer-events: auto;
     padding: 10px;
     width: 300px;
-    box-shadow: 0 0 15px #2f7f80;
+    box-shadow: 0 0 15px #333;
+    color: #fff;
+    &.bg-primary {
+      box-shadow: 0 0 15px #2f7f80;
+    }
+    &.bg-success {
+      box-shadow: 0 0 15px #009e05;
+      background-color: #30a500;
+    }
+    &.bg-info {
+      box-shadow: 0 0 15px #2f7f80;
+      background-color: #4f98bd;
+    }
+    &.bg-warning {
+      box-shadow: 0 0 15px #af5900;
+      background-color: #efc800;
+    }
+    &.bg-danger {
+      box-shadow: 0 0 15px #e40000;
+      background-color: #f90a0a;
+    }
     &:hover {
       box-shadow: 0 0 15px #333;
     }
+
     .close {
       float: right;
       width: 20px;
@@ -55,7 +76,7 @@
   <div class="message">
     <div class="center">
       <p
-        class="bg-primary"
+        v-bind:class="classname(item.type)"
         v-for="(item, index) in queue"
         :key="index"
         v-on:mouseenter="stopdelay(item)"
@@ -101,6 +122,9 @@ module.exports = Vue.extend({
     teststr: function() {}
   },
   methods: {
+    classname: function(type) {
+      return "bg-" + type;
+    },
     delmsg: function(uuid) {
       this.queue = this.queue.filter(function(task) {
         return task.uuid == uuid ? false : true;
@@ -152,6 +176,7 @@ module.exports = Vue.extend({
         }
         var item = Object.assign(
           {
+            type: type,
             uuid: tool.uuid(),
             msg: msg,
             delay: delay,
