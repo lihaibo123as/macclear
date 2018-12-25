@@ -16,81 +16,15 @@
         <loading v-bind:loading.sync="status.loading"></loading>
         <div class="container">
             <div class="page-header">
-                <h1>Example page header <button v-on:click="msg" class="btn btn-default">消息</button>
+                <h1>{{status.title}}
+                    <div class="pull-right">
+                        <a class="btn btn-link" v-on:click="page('apps')">App 列表</a>
+                        <a class="btn btn-link" v-on:click="page('config')">配置</a>
+                    </div>
+
                 </h1>
             </div>
-            <div class="row ">
-                <div class="col-xs-12">
-                    <p>{{status}}</p>
-                </div>
-                <div class="col-xs-12">
-                    <p>
-                        <div class="input-group">
-                            <div class="input-group-addon">{{dir}}/</div>
-                            <input type="text" class="form-control" v-model="status.search" placeholder="检索">
-                            <div class="input-group-btn"><button id="genpassword" class="btn btn-success" type="button"><i
-                                        class="fa fa-search"></i></button></div>
-                        </div>
-                    </p>
-                </div>
-                <div class="col-xs-12">
-                    <p>
-                        <div class="pull-right">
-                            <button class="btn-default btn btn-xs" @click='toggleSort(status.orderBy)'><i class="fa"
-                                    v-bind:class="orderIcon"></i></button>
-                            <div class="btn-group btn-group-xs">
-                                <button class="btn-default btn" v-bind:class="{active:status.order=='name'}" v-on:click="status.order='name'">默认</button>
-                                <button class="btn-default btn" v-bind:class="{active:status.order=='atimeMs'}"
-                                    v-on:click="status.order='atimeMs'">访问时间</button>
-                                <button class="btn-default btn" v-bind:class="{active:status.order=='mtimeMs'}"
-                                    v-on:click="status.order='mtimeMs'">修改时间</button>
-                                <button class="btn-default btn" v-bind:class="{active:status.order=='birthtimeMs'}"
-                                    v-on:click="status.order='birthtimeMs'">创建时间</button>
-                            </div>
-                        </div>
-                        <span class="text-muted">总计:</span>
-                        <span>{{status.count}}</span>
-                        <span class="clearfix"></span>
-                    </p>
-                </div>
-            </div>
-            <div class="panel panel-default" v-if="status.count==0">
-                <div class="panel-body center-block" style="text-align: center;">未找到 app</div>
-            </div>
-            <div class="panel panel-default" v-for="(app, index) in sort(search(apps,status.search),status.order,status.orderBy)"
-                :key="index">
-                <div class="panel-heading">
-                    <strcolor v-bind:search="status.search" v-bind:text="app.name"></strcolor>
-                    <small v-if="app.info.plist">版本:{{app.info.plist.CFBundleShortVersionString}}</small>
-                    <small v-if="app.info.plist">包:{{app.info.plist.CFBundleIdentifier}}</small>
-                    <small v-if="app.info.plist">应用:{{app.info.plist.CFBundleName}}</small>
-                </div>
-                <div class="panel-body">
-                    <div class="media">
-                        <div class="media-action pull-right">
-                            <button v-if="!app.info.size" type="button" class="btn btn-success btn-xs" v-on:click="appinfo(app)">分析</button>
-                            <button v-if="app.info.size" type="button" class="btn btn-danger btn-xs">删除</button>
-                        </div>
-                        <div class="media-left">
-                            <img v-if="app.info.icon" :src="app.info.icon" class="media-object">
-                            <div v-if="!app.info.icon" class="media-object"><i class="fa fa-cube"></i></div>
-                        </div>
-                        <div class="media-body">
-                            <div>位置:<strcolor v-bind:search="status.search" v-bind:text="app.filepath"></strcolor>
-                            </div>
-                            <div>大小:{{app.info.size?app.info.size:'正在计算...'}}</div>
-                            <div>访问时间:<timestr v-bind:time="app.atimeMs"></timestr>
-                            </div>
-                            <div>修改时间:<timestr v-bind:time="app.mtimeMs"></timestr>
-                            </div>
-                            <div>创建时间:<timestr v-bind:time="app.birthtimeMs"></timestr>
-                            </div>
-                        </div>
-                        <!-- 延迟显示定位点 -->
-                        <lazy-component v-if="app.name" @show="lazyshow(app)"></lazy-component>
-                    </div>
-                </div>
-            </div>
+            <component v-bind:is="status.page"></component>
         </div>
     </div>
     <script src="node_modules/nw-dev/lib/dev.js" data-ignore="src/*|data.json|*.md|*.tmp"></script>

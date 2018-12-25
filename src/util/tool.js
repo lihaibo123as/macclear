@@ -6,6 +6,7 @@
  */
 var fs = require('fs');
 var path = require('path');
+var queue = require('queue');
 nw.loadCss = function (config, callback) {
     var head = document.getElementsByTagName("head")[0];
 
@@ -53,6 +54,30 @@ Date.prototype.format = function (fmt) {
     return fmt;
 }
 var tool = {
+    demo: () => {
+        return new Promise((resolve, reject) => {
+            try {
+                // if (err) {
+                //     console.error(`出错: ${err}`);
+                //     reject(err);
+                //     return;
+                // }
+                resolve();
+            } catch (error) {
+                reject(error);
+            }
+        })
+    },
+    /**
+     * 消息提示
+     * tool.msg(err.message, 'primary', { delay: 0 });
+    tool.msg(err.message, 'success', { delay: 0 });
+    tool.msg(err.message, 'info', { delay: 0 });
+    tool.msg(err.message, 'warning', { delay: 0 });
+     * @param {*} msg 
+     * @param {*} type 
+     * @param {*} config 
+     */
     msg: function (msg, type, config) {
         var driver = window.msgdriver;
         if (driver) {
@@ -74,141 +99,252 @@ var tool = {
         });
         return (prefix ? prefix : '') + uuid;
     },
-    demo: () => {
+    queue: function (group, syncfun, args) {
+        this.$queueStack = this.$queueStack ? this.$queueStack : {};
+        if (!this.$queueStack[group]) {
+            var nqueue = queue({
+                concurrency: 3,//并发
+                timeout: 5000,//超时
+                autostart: true,
+            });
+            nqueue.on('timeout', function (next, job) {
+                console.warn('队列任务超时:', job);
+                next()
+            })
+            nqueue.on('success', function (result, job) {
+                // console.log('队列完成:', result, job);
+                console.warn(`队列状态,并发:${nqueue.pending},总数:${nqueue.jobs.length}`);
+            })
+            nqueue.on('end', function (err) {
+                console.warn('队列结束:', err);
+            })
+            this.$queueStack[group] = nqueue;
+        }
+        var q = this.$queueStack[group];
         return new Promise((resolve, reject) => {
-            try {
-                // if (err) {
-                //     console.error(`出错: ${err}`);
-                //     reject(err);
-                //     return;
-                // }
-                resolve();
-            } catch (error) {
-                reject(error);
+            q.push(function (cb) {
+                syncfun.apply(null, args).then((data) => {
+                    // console.log('队列完成:', syncfun, args, data);
+                    resolve(data);
+                    cb();
+                }, (err) => {
+                    // console.warn('队列失败:', syncfun, args, err);
+                    reject(err);
+                    cb();
+                })
+
+            });
+            // function (cb) {
+            //     setTimeout(function () {
+            //         console.log('延迟队列2000', q);
+            //         cb();
+            //     }, 2000);
+            // }
+            console.warn(`队列状态,并发:${q.pending},总数:${q.jobs.length}`);
+        })
+    },
+    /**
+     * 分装 callback to promise for async/await 使用
+     * @param {*} cbfun 
+     * @param {*} args  函数只有一个返回值则返回当前否则返回数组
+     */
+    ctp: function (cbfun, args) {
+        // console.log('封装:', cbfun, args);
+        return new Promise((resolve, reject) => {
+            if (!cbfun) {
+                reject(`驱动函数不存在:${cbfun}`)
+            } else {
+                args.push(function (err) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    var argus = Array.prototype.slice.call(arguments, 0);
+                    argus.shift();
+                    resolve(argus);
+                })
+                cbfun.apply(null, args);
             }
         })
     },
-    parsePlist: function (plistfile) {
+    // 以下都是 async/await 方法
+    /**
+     * 解析 plist
+     * @param {*} plistfile 
+     */
+    parsePlist: async function (plistfile) {
         var { exec } = require('child_process'), fields;
-        return new Promise((resolve, reject) => {
-            try {
-                fs.exists(plistfile, (exists) => {
-                    if (exists) {
-                        // fields = ['CFBundleName', 'CFBundleVersion', 'CFBundleShortVersionString', 'CFBundleIconFile', 'CFBundleIdentifier'];
-                        var shcmd = `/usr/libexec/PlistBuddy -c "Print" "${plistfile}"`;
-                        exec(shcmd, (err, stdout, stderr) => {
-                            if (err) {
-                                reject(err);
-                                return;
-                            }
-                            // if ('/Applications/Visual Studio.app/Contents/Info.plist' == plistfile) {
-                            // console.warn('plist', shcmd, plistfile, stdout);
-                            // console.log('match', stdout.match(/(\S+)\s\=\s(.*)/g));
-                            // }
-                            // console.log('match', stdout.match(/(\S+)\s\=\s(.*)/g));
-                            var temp = stdout.match(/(\S+)\s\=\s(.*)/g)
-                            var params = {};
-                            if (temp) {
-                                temp.forEach(item => {
-                                    var temprow = item.split(' = ');
-                                    if (fields) {
-                                        if (fields.indexOf(temprow[0]) > -1) {
-                                            params[temprow[0]] = temprow[1];
-                                        }
-                                    } else {
-                                        if (!params[temprow[0]]) {
-                                            params[temprow[0]] = temprow[1];
-                                        } else {
-                                            // console.log('重复属性覆盖:', temprow[0], temprow[1]);
-                                        }
-                                    }
-                                });
-                            }
-                            // console.log('params', params);
-                            resolve(params);
-                        })
-                    } else {
-                        reject(`文件不存在:${plistfile}`);
+        await this.ctp(fs.access, [plistfile, fs.constants.F_OK]);
+
+        // fields = ['CFBundleName', 'CFBundleVersion', 'CFBundleShortVersionString', 'CFBundleIconFile', 'CFBundleIdentifier'];
+        var shcmd = `/usr/libexec/PlistBuddy -c "Print" "${plistfile}"`;
+        var [stdout, stderr] = await this.ctp(exec, [shcmd]);
+        var temp = stdout.match(/(\S+)\s\=\s(.*)/g)
+        var params = {};
+        if (temp) {
+            temp.forEach(item => {
+                var temprow = item.split(' = ');
+                if (fields) {
+                    if (fields.indexOf(temprow[0]) > -1) {
+                        params[temprow[0]] = temprow[1];
                     }
-                })
-            } catch (error) {
-                reject(error);
-            }
-        })
+                } else {
+                    if (!params[temprow[0]]) {
+                        params[temprow[0]] = temprow[1];
+                    } else {
+                        // console.log('重复属性覆盖:', temprow[0], temprow[1]);
+                    }
+                }
+            });
+        }
+        // console.log('params', params);
+        return params;
     },
     /**
      * 解析icns图标到图片
      * @param {图标} icns 
      */
-    parseIcns: function (icns) {
-        return new Promise((resolve, reject) => {
-            try {
-                var iconutil = require('iconutil');
-                // console.log('iconutil', iconutil,icns);
-                iconutil.toIconset(icns, function (error, icons) {
-                    if (error) {
-                        console.warn(`parseIcns出错: ${error},${icns}`);
-                        reject(error);
-                        return;
-                    }
-                    // console.log('icon', icons);
-                    var icon;
-                    if (icons['icon_128x128.png']) {
-                        icon = icons['icon_128x128.png'];
-                    } else if (icons['icon_256x256.png']) {
-                        icon = icons['icon_256x256.png'];
-                    } else if (icons['icon_512x512.png']) {
-                        icon = icons['icon_512x512.png'];
-                    }
-                    if (icon) {
-                        var base64 = 'data:image/png;base64,' + icon.toString('base64');
-                        resolve(base64);
-                    } else {
-                        console.warn('图标不存在', icons);
-                        reject('图标不存在');
-                    }
-                });
-            } catch (error) {
-                reject(error);
-            }
-        })
+    parseIcns: async function (icns) {
+        var iconutil = require('iconutil');
+        // console.log('iconutil', iconutil,icns);
+        var [icons] = await this.ctp(iconutil.toIconset, [icns]);
+        var icon;
+        if (icons['icon_128x128.png']) {
+            icon = icons['icon_128x128.png'];
+        } else if (icons['icon_256x256.png']) {
+            icon = icons['icon_256x256.png'];
+        } else if (icons['icon_512x512.png']) {
+            icon = icons['icon_512x512.png'];
+        }
+        if (icon) {
+            var base64 = 'data:image/png;base64,' + icon.toString('base64');
+            return base64;
+        } else {
+            console.warn('图标不存在', icons);
+            throw new Error('图标不存在');
+        }
     },
     /**
      * 获取文件大小
      * @param {文件} file 
      */
-    fileSize: function (file) {
+    fileSize: async function (file) {
         var { exec } = require('child_process');
-        return new Promise((resolve, reject) => {
-            try {
-                fs.stat(file, function (error, stats) {
-                    if (error) {
-                        console.error(`stat出错: ${error}`);
-                        reject(error);
-                        return;
-                    }
-                    if (stats.isDirectory() || stats.isFile()) {
-                        var shcmd = `du -h -d 0 "${file}"`;
-                        exec(shcmd, (error, stdout, stderr) => {
-                            if (error) {
-                                console.error(`exec:${shcmd}出错:${error}`);
-                                return;
-                            }
-                            var res = stdout.trim().split(/\s+/);
-                            resolve(res[0]);
-                        })
-                    } else {
-                        reject(`目录异常:${file}}`);
-                    }
-                });
-            } catch (error) {
-                reject(error);
-            }
-        })
+        var [stats] = await this.ctp(fs.stat, [file]);
+        if (stats.isDirectory() || stats.isFile()) {
+            var shcmd = `du -h -d 0 "${file}"`;
+            var [stdout, stderr] = await this.ctp(exec, [shcmd]);
+            return stdout.trim().split(/\s+/)[0];
+        } else {
+            throw new Error(`目录异常:${file}}`);
+        }
     },
-    searchDirs: function (dir) {
+    /**
+     * 检索指定目录 app数据
+     * @param {目录} dir 
+     */
+    searchApp: async function (dir) {
+        console.log('检索目录:', dir);
         var filepath = path.resolve(dir);
-        var files = fs.readdirSync(filepath);
+        var [files] = await this.ctp(fs.readdir, [filepath]);
+        var apps = [];
+        for (var i in files) {
+            var filename = files[i];
+            if (/^\.(\S+)?$/.test(filename)) {
+                // console.log('隐藏文件跳过:', filename);
+                continue;
+            }
+            if (/^.*\.app$/.test(filename)) {
+                var filedir = path.join(filepath, filename);
+                let [stats] = await this.ctp(fs.stat, [filedir]);
+                var appname = filename.replace('.app', '');
+                var plistpath = `${filedir}/Contents/Info.plist`;
+                apps.push({
+                    name: appname,
+                    plistpath: plistpath,
+                    filename: filename,
+                    filepath: filedir,
+                    atimeMs: stats.atimeMs,
+                    birthtimeMs: stats.birthtimeMs,
+                    mtimeMs: stats.mtimeMs,
+                    stats: stats,
+                });
+            }
+        }
+        return apps;
+    },
+    /**
+     * 获取 app详情
+     * @param {searchApp=>item} app 
+     */
+    $appInfo: async function (app) {
+        //基本信息
+        var info = {
+            plist: await tool.parsePlist(app.plistpath),
+            size: await tool.fileSize(app.filepath),
+        };
+        //图标
+        try {
+            if (info.plist.CFBundleIconFile) {
+                var iconname = info.plist.CFBundleIconFile.replace('.icns', '');
+                info.icon = await tool.parseIcns(`${app.filepath}/Contents/Resources/${iconname}.icns`)
+            }
+        } catch (error) {
+            console.warn('图标异常:', app.name);
+        }
+        app.info = Object.assign({}, info, app.info);
+        return app;
+    },
+    appInfo: function () {
+        var args = Array.prototype.slice.call(arguments, 0);
+        return this.queue('appinfo', this.$appInfo, args);
+    },
+    /**
+     * 获取 app关联文件信息
+     * @param {searchApp=>item} app 
+     */
+    appRules: async function (app, rules) {
+        var plist = app.info.plist;
+        var os = require('os');
+        var userpath = os.homedir();
+        if (plist) {
+            var filerules = [];
+            console.log('appPlist:', plist);
+            for (var i in rules) {
+                var rule = rules[i];
+                console.log('获取规则文件:', rule.key, rule);
+                var temprule = {};
+                if (plist[rule.key]) {
+                    let reg;
+                    if (typeof rule.reg == 'string') {
+                        reg = new RegExp(rule.reg.replace('__key__', plist[rule.key]));
+                    }
+                    if (rule.reg && rule.reg.length) {
+                        reg = new RegExp(rule.reg[0].replace('__key__', plist[rule.key]), rule.reg[1]);
+                    }
+                    console.log('匹配规则:', reg, rule.reg);
+                    if (reg) {
+                        var searchpath = rule.path.replace(/^~/, userpath);
+                        var temp = await this.dirFiles(searchpath, reg);
+                        temprule.files = temp;
+                    }
+                }
+                filerules.push(Object.assign({}, rule, temprule));
+            }
+            console.log('规则信息:', filerules);
+            app.info = Object.assign({ rules: filerules }, app.info);
+        }
+        return app;
+    },
+    /**
+     * 检索目录文件
+     * @param {*} dir 
+     * @param {*} reg 
+     */
+    dirFiles: async function (dir, reg) {
+        var filepath = path.resolve(dir);
+        var that = this;
+        var [files] = await this.ctp(fs.readdir, [filepath]);
         var dirs = [];
         for (var i in files) {
             var filename = files[i];
@@ -219,180 +355,17 @@ var tool = {
             if (/^.*\.app$/.test(filename)) {
                 continue;
             }
-            var filedir = path.join(filepath, filename);
-            var stats = fs.statSync(filedir);
-            var isFile = stats.isFile();//是文件
-            var isDir = stats.isDirectory();//是文件夹
-            if (isDir) {
-                dirs.push(filedir);
+
+            if (reg.test(filename)) {
+                console.log('匹配文件:', filename);
+                var filedir = path.join(filepath, filename);
+                var [stats] = await this.ctp(fs.stat, [filedir]);
+                var isFile = stats.isFile();//是文件
+                var isDir = stats.isDirectory();//是文件夹
+                dirs.push({ path: filedir, isFile: isFile, isDir: isDir, stats: stats });
             }
         }
         return dirs;
     },
-    /**
-     * 检索指定目录 app数据
-     * @param {目录} dir 
-     */
-    searchApp: function (dir) {
-        var that = this;
-        return new Promise((resolve, reject) => {
-            try {
-                var filepath = path.resolve(dir);
-                fs.readdir(filepath, function (error, files) {
-                    if (error) {
-                        reject(error);
-                        return;
-                    }
-                    var apps = [];
-                    for (var i in files) {
-                        var filename = files[i];
-                        if (/^\.(\S+)?$/.test(filename)) {
-                            // console.log('隐藏文件跳过:', filename);
-                            continue;
-                        }
-                        if (/^.*\.app$/.test(filename)) {
-                            var filedir = path.join(filepath, filename);
-                            var state = fs.statSync(filedir);
-                            var appname = filename.replace('.app', '');
-                            var plistpath = `${filedir}/Contents/Info.plist`;
-                            apps.push({
-                                name: appname,
-                                plistpath: plistpath,
-                                filename: filename,
-                                filepath: filedir,
-                                atimeMs: state.atimeMs,
-                                birthtimeMs: state.birthtimeMs,
-                                mtimeMs: state.mtimeMs,
-                                state: state,
-                            });
-                        }
-                    }
-                    resolve(apps);
-                });
-            } catch (error) {
-                reject(error);
-            }
-        })
-    },
-    /**
-     * 获取 app详情
-     * @param {searchApp=>item} app 
-     */
-    appInfo: function (app) {
-        var appinfo = async function (app) {
-            //基本信息
-            var info = {
-                plist: await tool.parsePlist(app.plistpath),
-                size: await tool.fileSize(app.filepath),
-            };
-            //图标
-            try {
-                if (info.plist.CFBundleIconFile) {
-                    var iconname = info.plist.CFBundleIconFile.replace('.icns', '');
-                    info.icon = await tool.parseIcns(`${app.filepath}/Contents/Resources/${iconname}.icns`)
-                }
-            } catch (error) {
-                console.log('图标异常:', app.name);
-            }
-            app.info = Object.assign({}, info, app.info);
-            return app;
-        };
-        return appinfo(app);
-    },
-    searchDirFiles: function (dir, search, ignore) {
-        var searpath = path.resolve(dir);
-        console.log('检索目录文件:', searpath);
-        var searchlist = [];
-        try {
-            searchFile(searpath, pushFile);
-        } catch (error) {
-            console.error('检索文件错误:', error.message);
-        }
-        /**
-         * 加入队列
-         * @param {*} filename 
-         * @param {*} filepath 
-         * @param {*} state 
-         */
-        function pushFile(filename, filepath, state) {
-            var item = {
-                name: filename,
-                path: filepath,
-                size: state.size,
-                atimeMs: state.atimeMs,
-                ctimeMs: state.ctimeMs,
-                mtimeMs: state.mtimeMs,
-            };
-            // console.log('加入队列', item);
-            searchlist.push(item);
-        }
-        /**
-         * 递归检索目录文件
-         * @param {*} filepath 
-         */
-        function searchFile(filepath, pushFile) {
-            console.log('检索目录:', filepath);
-            fs.readdir(filepath, function (err, files) {
-                if (err) {
-                    console.warn('readdir:', err);
-                    return;
-                }
-                // console.log('文件列表',files);
-                for (var i in files) {
-                    var filename = files[i];
-                    if (/^\.(\S+)?$/.test(filename)) {
-                        // console.log('隐藏文件跳过:', filename);
-                        continue;
-                    }
-                    stateFile(filepath, filename, pushFile);
-                }
-            });
-        }
-        function stateFile(filepath, filename, pushFile) {
-            var filedir = path.join(filepath, filename);
-            fs.stat(filedir, function (err, stats) {
-                if (err) {
-                    console.warn('stat', err);
-                    return;
-                }
-                var isApp = false;
-                if (/^.*\.app$/.test(filename)) {
-                    isApp = true;
-                }
-                var isFile = stats.isFile();//是文件
-                var isDir = stats.isDirectory();//是文件夹
-                // console.log('filestate', stats, isFile, isDir);
-                if (isFile || isApp) {
-                    if (ignore) {
-                        let ignoreReg = new RegExp(ignore)
-                        if (ignoreReg.test(filename)) {
-                            // console.log('忽略文件跳过:', filename);
-                        }
-                    } else {
-                        if (search) {
-                            let searchReg = new RegExp(search)
-                            if (searchReg.test(filename)) {
-                                pushFile(filename, filepath, stats);
-                            } else {
-                                // console.log('不匹配文件跳过:', filename);
-                            }
-                        } else {
-                            pushFile(filename, filepath, stats);
-                        }
-                    }
-                }
-                if (isDir) {
-                    console.log('递归获取文件:', filedir);
-                    try {
-                        setTimeout(() => {
-                            searchFile(filedir, pushFile);//递归，如果是文件夹，就继续遍历该文件夹下面的文件
-                        }, 2000);
-                    } catch (error) {
-                        console.warn('子目录异常:', error.message);
-                    }
-                }
-            });
-        }
-    }
 };
 module.exports = tool;

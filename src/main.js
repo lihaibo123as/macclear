@@ -7,7 +7,7 @@ module.exports = {
     //调试模式
     if (conf.debug) {
       os.debug();
-      console.log("os:", os, store);
+      console.log("os:", os, tool);
       console.log("nw", nw);
       console.log("conf", conf);
       console.log("process", process);
@@ -37,132 +37,29 @@ module.exports = {
       el: selecter,
       data: {
         //静态属性
-        conf: conf,
-        apps: [],
-        dir: conf.search_path ? conf.search_path : "/",
         status: {
+          page: 'page-apps',
           visit: store.get('visit'),
-          search: "",
-          order: "name",
-          orderBy: "asc",
-          count: 0,
-          loading: true,
-          title: "Mac优化工具 Example page header"
+          loading: false,
+          title: "Mac优化工具"
         },
-        objtpl: {
-          app: {
-            //app 对象基础属性
-            info: {
-              // size: '计算中...',
-              // icon: '',
-              // plist: '',
-            }
-          }
-        }
       },
       computed: {
-        //计算属性
-        orderIcon: function () {
-          return {
-            "fa-sort-amount-desc": this.status.orderBy == "desc",
-            "fa-sort-amount-asc": this.status.orderBy == "asc"
-          };
-        }
       },
       components: {
         //组件
-        // 'xlog': xbutton
+        'page-apps': require('./js/apps'),
+        'page-config': require('./js/config')
       },
       methods: {
-        msg: function () {
-          tool.msg('怎么了');
-        },
-
-        lazyshow: function (app) {
-          // console.log('appshow', app);
-          // this.appinfo(app);
-          var that = this;
-          setTimeout(function () {
-            that.appinfo(app);
-          }, 100);
-        },
-        appinfo: function (app) {
-          // console.log('获取 app 详情', app.name, app);
-          tool.appInfo(app).then(
-            newapp => {
-              console.log("App 详情:", newapp.name, newapp);
-            },
-            err => {
-              console.error(`App详情异常:${app.name}`, err, app);
-            }
-          );
-        },
-        toggleSort: function (sort) {
-          this.status.orderBy = sort == "desc" ? "asc" : "desc";
-          console.log("sort", sort, this.status.orderBy);
-        },
-        sort: function (arrays, key, type) {
-          this.status.count = arrays.length;
-          if (arrays.length && key && type) {
-            var temp;
-            switch (type) {
-              case "desc":
-                temp = arrays.sort((a, b) => a[key] - b[key]).reverse();
-                break;
-              default:
-                temp = arrays.sort((a, b) => a[key] - b[key]);
-                break;
-            }
-            return temp;
-          }
-          return arrays;
-        },
-        search: function (apps, search) {
-          return apps.filter(function (app) {
-            if (search) {
-              //检索过滤
-              search = search.toLowerCase();
-              if (app.name.toLowerCase().indexOf(search) > -1) {
-                return true;
-              } else {
-                return false;
-              }
-            } else {
-              return true;
-            }
-          });
-        },
-        loading: function () {
-          this.status.loading = true;
-          console.log("loading", this.status.loading);
-        },
-        searchdir: function (dir) {
-          this.status.otherdirs = tool.searchDirs(dir);
+        page: function (page) {
+          console.log('index', this);
+          this.status.page = 'page-' + page;
         },
         init: function () {
           var that = this;
-          that.status.loading = true;
-
-          tool.searchApp(that.dir).then(
-            function (apps) {
-              apps.forEach(app => {
-                that.apps.push(Object.assign({}, that.objtpl.app, app));
-              });
-              console.log("app", that.apps);
-              tool.msg(`搜索 App完成`, 'success');
-              that.status.loading = false;
-            },
-            function (err) {
-              console.log("查询错误", err.message);
-              // tool.msg(err.message, 'primary', { delay: 0 });
-              // tool.msg(err.message, 'success', { delay: 0 });
-              // tool.msg(err.message, 'info', { delay: 0 });
-              // tool.msg(err.message, 'warning', { delay: 0 });
-              tool.msg(`搜索 APP错误:${err.message}`, 'danger');
-            }
-          );
           console.log("xinit", this);
-        }
+        },
       },
       // beforeCreate: function () {
       //     console.group('beforeCreate 创建前状态===============》', this);

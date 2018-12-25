@@ -3,14 +3,23 @@
  * 帮助Mac 用户完全删除 App ,清理历史残留文件,提交 bug :154624410
  * Copyright (c) 2018 <lihaibo123as@163.com>
  * MIT License - http://opensource.org/licenses/mit-license.php
- * Released on: December 21, 2018
+ * Released on: December 25, 2018
  */
-.media-object {
+.app-body .media-object {
   width: 64px;
   height: 64px;
   text-align: center;
 }
-.media-object > .fa {
+.app-body .media-object > .fa {
   line-height: 64px;
   font-size: 56px;
+}
+.app-body .margin-10 {
+  margin: 0 0 10px;
+}
+.app-body .margin-top-5 {
+  margin-top: 5px;
+}
+.app-body .margin-bottom-5 {
+  margin-bottom: 5px;
 }

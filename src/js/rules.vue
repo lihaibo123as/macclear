@@ -1,59 +1,32 @@
 <style lang="scss">
-.demo {
-  .subdemo {
-  }
+.app-files {
 }
 </style>
 <template>
-  <div>demo:style ,template script 顺序不能调整</div>
+  <div class="rules">app 文件列表:{{rules.length}}</div>
 </template>
 
 <script>
 module.exports = Vue.extend({
   data: () => {
     return {
-      title: "按钮",
-      count: 0
+      // rules: []
     };
   },
   props: {
-    test: String
+    rules: Array
   },
-  computed: {
-    teststr: function() {}
-  },
-  methods: {
-    titlewatch: function() {
-      console.log("监听处理 title变化数据");
-    },
-    click: function() {
-      console.log(this);
-      this.count++;
-    }
-  },
+  computed: {},
+  methods: {},
   watch: {
-    test() {},
-    title: "titlewatch"
-  },
-  beforeCreate: function() {
-    console.group("beforeCreate 创建前状态===============》", this);
-    console.log("%c%s", "color:red", "el     : ", this.$el); //undefined
-    console.log("%c%s", "color:red", "data   : ", this.$data); //undefined
-  },
-  created: function() {
-    console.group("created 创建完毕状态===============》");
-    console.log("%c%s", "color:red", "el     : ", this.$el); //undefined
-    console.log("%c%s", "color:red", "data   : ", this.$data); //已被初始化
-  },
-  beforeMount: function() {
-    console.group("beforeMount 挂载前状态===============》");
-    console.log("%c%s", "color:red", "el     : ", this.$el); //已被初始化
-    console.log("%c%s", "color:red", "data   : ", this.$data); //已被初始化
+    rules(rules) {
+      console.log("rules", rules);
+    }
   },
   mounted: function() {
     console.group("mounted 挂载结束状态===============》");
     console.log("%c%s", "color:red", "el     : ", this.$el); //已被初始化
-    console.log("%c%s", "color:red", "data   : ", this.$data); //已被初始化
+    console.log("%c%s", "color:red", "data   : ", this); //已被初始化
   },
   beforeUpdate: function() {
     console.group("beforeUpdate 更新前状态===============》");
