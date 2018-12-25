@@ -11,9 +11,10 @@
 1. 应用中文名,未找到字段数据
 2. app 关联数据目录汇总待校验
   - 用户目录
-    - /Appli
-    - /Library
+    - ~/Appli
+    - ~/Library
   - 系统目录
+    - /Library
   
 
 #### 安装教程

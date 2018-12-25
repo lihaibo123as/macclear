@@ -1,22 +1,23 @@
 <style lang="scss">
-.media-object {
-  width: 64px;
-  height: 64px;
-  text-align: center;
-  > .fa {
-    line-height: 64px;
-    font-size: 56px;
+.app-apps {
+  position: relative;
+  .media-object {
+    width: 64px;
+    height: 64px;
+    text-align: center;
+    > .fa {
+      line-height: 64px;
+      font-size: 56px;
+    }
   }
 }
 </style>
 
 <template>
-  <section>
+  <section class="app-apps">
     <loading v-bind:loading.sync="status.loading"></loading>
     <div class="row">
-      <div class="col-xs-12">
-        <p>{{status}}</p>
-      </div>
+      <!-- <div class="col-xs-12"><p>{{status}}</p></div> -->
       <div class="col-xs-12 margin-10">
         <div class="input-group">
           <div class="input-group-addon">{{dir}}/</div>
@@ -30,7 +31,7 @@
       </div>
       <div class="col-xs-12 margin-10">
         <div class="pull-right">
-          <button class="btn-default btn btn-xs" @click="toggleSort(status.orderBy)">
+          <button class="btn-default btn btn-xs margin-right-5" @click="toggleSort(status.orderBy)">
             <i class="fa" v-bind:class="orderIcon"></i>
           </button>
           <div class="btn-group btn-group-xs">
@@ -83,14 +84,19 @@
               type="button"
               class="btn btn-success btn-xs"
               v-on:click="appinfo(app)"
-            >简介</button>
+              v-bind:disabled="app.loading"
+            >
+              <i v-if="app.loading" class="fa fa-spinner fa-pulse"></i> 应用信息
+            </button>
             <button
               v-if="app.info.size"
               type="button"
-              class="btn btn-danger btn-xs"
+              class="btn btn-info btn-xs"
               v-on:click="apprules(app)"
-            >文件列表</button>
-            <button v-if="app.info.size" type="button" class="btn btn-danger btn-xs">删除</button>
+              v-bind:disabled="app.info.loading"
+            >
+              <i v-if="app.info.loading" class="fa fa-spinner fa-pulse"></i> 分析文件
+            </button>
           </div>
           <div class="media-left">
             <img v-if="app.info.icon" :src="app.info.icon" class="media-object">
@@ -172,15 +178,15 @@ module.exports = {
     msg: function() {
       tool.msg("怎么了");
     },
-
     lazyshow: function(app) {
       var that = this;
       that.appinfo(app);
     },
     appinfo: function(app) {
-      // console.log('获取 app 详情', app.name, app);
-      tool.appInfo(app).then(
+      this.$set(app, "loading", true);
+      tool.queue("appinfo", tool.appInfo, [app], tool).then(
         newapp => {
+          newapp.loading = false;
           console.log("App 详情:", newapp.name, newapp, newapp.info);
         },
         err => {
@@ -190,14 +196,22 @@ module.exports = {
       );
     },
     apprules: function(app) {
-      tool.appRules(app, ruleconfig.rules).then(
-        newapp => {
-          console.log("App 文件分析:", newapp.name, newapp);
-        },
-        err => {
-          console.error(`App文件分析异常:${app.name}`, err, app);
-        }
-      );
+      if (app.info.plist) {
+        this.$set(app.info, "loading", true);
+        tool
+          .queue("apprules", tool.appRules, [app, ruleconfig.rules], tool)
+          .then(
+            newapp => {
+              newapp.info.loading = false;
+              console.log("App 文件分析完成:", newapp.name, newapp);
+            },
+            err => {
+              console.error(`App文件分析异常:${app.name}`, err, app);
+            }
+          );
+      } else {
+        tool.msg("app基础信息异常:", "warning");
+      }
     },
     toggleSort: function(sort) {
       this.status.orderBy = sort == "desc" ? "asc" : "desc";

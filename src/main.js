@@ -41,7 +41,7 @@ module.exports = {
           page: 'page-apps',
           visit: store.get('visit'),
           loading: false,
-          title: "Mac优化工具"
+          title: "Mac清理工具"
         },
       },
       computed: {

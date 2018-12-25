@@ -99,11 +99,19 @@ var tool = {
         });
         return (prefix ? prefix : '') + uuid;
     },
-    queue: function (group, syncfun, args) {
+    /**
+     * 队列执行延迟对象
+     * @param {*} group 队列分组
+     * @param {*} syncfun 延迟方法
+     * @param {*} args 方法参数
+     * @param {*} scope  函数所在作用域
+     * queue('appinfo', this.$appInfo, args);
+     */
+    queue: function (group, syncfun, args, scope) {
         this.$queueStack = this.$queueStack ? this.$queueStack : {};
         if (!this.$queueStack[group]) {
             var nqueue = queue({
-                concurrency: 3,//并发
+                concurrency: 2,//并发
                 timeout: 5000,//超时
                 autostart: true,
             });
@@ -123,7 +131,7 @@ var tool = {
         var q = this.$queueStack[group];
         return new Promise((resolve, reject) => {
             q.push(function (cb) {
-                syncfun.apply(null, args).then((data) => {
+                syncfun.apply(scope, args).then((data) => {
                     // console.log('队列完成:', syncfun, args, data);
                     resolve(data);
                     cb();
@@ -132,14 +140,15 @@ var tool = {
                     reject(err);
                     cb();
                 })
-
             });
-            // function (cb) {
-            //     setTimeout(function () {
-            //         console.log('延迟队列2000', q);
-            //         cb();
-            //     }, 2000);
-            // }
+            // q.push(
+            //     function (cb) {
+            //         setTimeout(function () {
+            //             console.log('延迟队列2000', q);
+            //             cb();
+            //         }, 2000);
+            //     }
+            // )
             console.warn(`队列状态,并发:${q.pending},总数:${q.jobs.length}`);
         })
     },
@@ -147,8 +156,9 @@ var tool = {
      * 分装 callback to promise for async/await 使用
      * @param {*} cbfun 
      * @param {*} args  函数只有一个返回值则返回当前否则返回数组
+     * @param {*} scope  函数所在作用域
      */
-    ctp: function (cbfun, args) {
+    ctp: function (cbfun, args, scope) {
         // console.log('封装:', cbfun, args);
         return new Promise((resolve, reject) => {
             if (!cbfun) {
@@ -163,7 +173,7 @@ var tool = {
                     argus.shift();
                     resolve(argus);
                 })
-                cbfun.apply(null, args);
+                cbfun.apply(scope, args);
             }
         })
     },
@@ -277,7 +287,7 @@ var tool = {
      * 获取 app详情
      * @param {searchApp=>item} app 
      */
-    $appInfo: async function (app) {
+    appInfo: async function (app) {
         //基本信息
         var info = {
             plist: await tool.parsePlist(app.plistpath),
@@ -295,26 +305,25 @@ var tool = {
         app.info = Object.assign({}, info, app.info);
         return app;
     },
-    appInfo: function () {
-        var args = Array.prototype.slice.call(arguments, 0);
-        return this.queue('appinfo', this.$appInfo, args);
-    },
     /**
-     * 获取 app关联文件信息
-     * @param {searchApp=>item} app 
+     * app关联文件信息
+     * @param {*} app 
+     * @param {*} rules 
      */
     appRules: async function (app, rules) {
         var plist = app.info.plist;
         var os = require('os');
         var userpath = os.homedir();
+        console.log('分析文件', this, app, rules);
         if (plist) {
             var filerules = [];
             console.log('appPlist:', plist);
             for (var i in rules) {
                 var rule = rules[i];
                 console.log('获取规则文件:', rule.key, rule);
-                var temprule = {};
+                var temprule = Object.assign({ loading: true, files: [] }, rule);
                 if (plist[rule.key]) {
+                    temprule.value = plist[rule.key];
                     let reg;
                     if (typeof rule.reg == 'string') {
                         reg = new RegExp(rule.reg.replace('__key__', plist[rule.key]));
@@ -322,19 +331,34 @@ var tool = {
                     if (rule.reg && rule.reg.length) {
                         reg = new RegExp(rule.reg[0].replace('__key__', plist[rule.key]), rule.reg[1]);
                     }
-                    console.log('匹配规则:', reg, rule.reg);
-                    if (reg) {
-                        var searchpath = rule.path.replace(/^~/, userpath);
-                        var temp = await this.dirFiles(searchpath, reg);
-                        temprule.files = temp;
-                    }
+                    //用户路径解析
+                    temprule.path = temprule.path.replace(/^~/, userpath);
+                    temprule.regexp = reg;
+
+                    //异步载入文件数据
+                    this.appRuleFiles(temprule);
                 }
-                filerules.push(Object.assign({}, rule, temprule));
+                filerules.push(temprule);
             }
             console.log('规则信息:', filerules);
             app.info = Object.assign({ rules: filerules }, app.info);
         }
         return app;
+    },
+    appRuleFiles: function (rule) {
+        if (rule.value && rule.regexp) {
+            this.queue('apprulefiles', this.dirFiles, [rule.path, rule.regexp], this).then(function (files) {
+                rule.files = files;
+                console.log('规则文件列表', rule);
+                rule.loading = false;
+            }, function (err) {
+                rule.loading = false;
+                rule.err = err;
+                console.log('rule file reject', err);
+            })
+        } else {
+            console.warn('无效规则值或者规则正则');
+        }
     },
     /**
      * 检索目录文件
@@ -343,7 +367,6 @@ var tool = {
      */
     dirFiles: async function (dir, reg) {
         var filepath = path.resolve(dir);
-        var that = this;
         var [files] = await this.ctp(fs.readdir, [filepath]);
         var dirs = [];
         for (var i in files) {
@@ -352,17 +375,21 @@ var tool = {
                 // console.log('隐藏文件跳过:', filename);
                 continue;
             }
+            let isApp = false;
             if (/^.*\.app$/.test(filename)) {
-                continue;
+                isApp = true;
             }
 
+            reg.lastIndex = 0;
+            // console.log('匹配:', reg, filename, reg.test(filename));
             if (reg.test(filename)) {
                 console.log('匹配文件:', filename);
                 var filedir = path.join(filepath, filename);
                 var [stats] = await this.ctp(fs.stat, [filedir]);
+                var size = await this.fileSize(filedir);
                 var isFile = stats.isFile();//是文件
                 var isDir = stats.isDirectory();//是文件夹
-                dirs.push({ path: filedir, isFile: isFile, isDir: isDir, stats: stats });
+                dirs.push({ size: size, path: filedir, isFile: isFile, isDir: isDir, stats: stats, isApp: isApp });
             }
         }
         return dirs;

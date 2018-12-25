@@ -21,8 +21,8 @@ module.exports = Vue.extend({
   watch: {},
   mounted: function() {
     console.group("mounted 挂载结束状态===============》");
-    console.log("%c%s", "color:red", "el     : " + this.$el); //已被初始化
-    console.log("%c%s", "color:red", "data   : " + this.$data); //已被初始化
+    console.log("%c%s", "color:red", "el     : " , this.$el); //已被初始化
+    console.log("%c%s", "color:red", "data   : " , this.$data); //已被初始化
     console.log("app-rules-config", this);
   },
   template: `__template__` //必须是单引号 模板替换标识可在配置内更改

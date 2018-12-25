@@ -103,7 +103,7 @@ foal.task('js', (src, dist) => {
     // console.log('[js]'.info, src, dist);
     gulp.src(src).pipe(plumber({ errorHandler: errrHandler }))
         // .pipe(babel())
-        .pipe(uglify(uglifyConfig))
+        // .pipe(uglify(uglifyConfig))
         .pipe(header(site.banner + site.strict, { pkg: site.pkg, date: site.date }))
         .pipe(gulp.dest(dist));
 });
