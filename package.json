@@ -1,7 +1,6 @@
 {
   "name": "MacClear",
   "version": "1.0.0",
-  "product_string": "MacClear",
   "description": "帮助Mac 用户完全删除 App ,清理历史残留文件.",
   "main": "index.html",
   "chromium-args": "--mixed-context --load-extension='./node_modules/nw-vue-devtools/extension'",
