@@ -39,4 +39,9 @@
 
 
 #### 流程界面
-(./src/images/macclear-1.png)
+![avatar](./src/images/macclear-1.png)
+![avatar](./src/images/macclear-2.png)
+![avatar](./src/images/macclear-3.png)
+![avatar](./src/images/macclear-4.png)
+![avatar](./src/images/macclear-5.png)
+![avatar](./src/images/macclear-6.png)
