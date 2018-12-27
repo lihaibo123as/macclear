@@ -7,6 +7,7 @@
 var fs = require('fs');
 var path = require('path');
 var queue = require('queue');
+// var util = require("util");
 nw.loadCss = function (config, callback) {
     var head = document.getElementsByTagName("head")[0];
 
@@ -86,6 +87,16 @@ var tool = {
             console.warn('消息驱动未初始化', window.msgdriver);
         }
     },
+    confirm: function (config) {
+        var driver = window.msgdriver;
+        if (driver) {
+            return driver.confirm(config);
+        } else {
+            console.warn('消息驱动未初始化', window.msgdriver);
+            return Promise.reject('消息驱动未初始化');
+        }
+    },
+
     uuid: function (prefix, length) {
         if (length > 0) {
             var uuid = Math.random().toString(36).substr(2);
@@ -107,14 +118,14 @@ var tool = {
      * @param {*} scope  函数所在作用域
      * queue('appinfo', this.$appInfo, args);
      */
-    queue: function (group, syncfun, args, scope) {
+    queue: function (group, syncfun, args, scope, config) {
         this.$queueStack = this.$queueStack ? this.$queueStack : {};
         if (!this.$queueStack[group]) {
-            var nqueue = queue({
+            var nqueue = queue(Object.assign({
                 concurrency: 2,//并发
                 timeout: 5000,//超时
                 autostart: true,
-            });
+            }, config));
             nqueue.on('timeout', function (next, job) {
                 console.warn('队列任务超时:', job);
                 next()
@@ -130,6 +141,14 @@ var tool = {
         }
         var q = this.$queueStack[group];
         return new Promise((resolve, reject) => {
+            // q.push(
+            //     function (cb) {
+            //         setTimeout(function () {
+            //             console.log('延迟队列2000', q);
+            //             cb();
+            //         }, 500);
+            //     }
+            // )
             q.push(function (cb) {
                 syncfun.apply(scope, args).then((data) => {
                     // console.log('队列完成:', syncfun, args, data);
@@ -141,19 +160,12 @@ var tool = {
                     cb();
                 })
             });
-            // q.push(
-            //     function (cb) {
-            //         setTimeout(function () {
-            //             console.log('延迟队列2000', q);
-            //             cb();
-            //         }, 2000);
-            //     }
-            // )
             console.warn(`队列状态,并发:${q.pending},总数:${q.jobs.length}`);
         })
     },
     /**
      * 分装 callback to promise for async/await 使用
+     * 待优化 使用  util.promisify 替代
      * @param {*} cbfun 
      * @param {*} args  函数只有一个返回值则返回当前否则返回数组
      * @param {*} scope  函数所在作用域
@@ -253,11 +265,19 @@ var tool = {
      * 检索指定目录 app数据
      * @param {目录} dir 
      */
-    searchApp: async function (dir) {
-        console.log('检索目录:', dir);
+    searchApp: async function (dir, subapp) {
+        // console.log('检索目录:', dir);
         var filepath = path.resolve(dir);
         var [files] = await this.ctp(fs.readdir, [filepath]);
         var apps = [];
+        var apptpl = {
+            //app 对象基础属性
+            info: {
+                // size: '计算中...',
+                // icon: '',
+                // plist: '',
+            }
+        }
         for (var i in files) {
             var filename = files[i];
             if (/^\.(\S+)?$/.test(filename)) {
@@ -269,7 +289,20 @@ var tool = {
                 let [stats] = await this.ctp(fs.stat, [filedir]);
                 var appname = filename.replace('.app', '');
                 var plistpath = `${filedir}/Contents/Info.plist`;
+                var subapppath = `${filedir}/Contents/MacOS`;
+                var subapps = [];
+                if (subapp) {
+                    try {
+                        await this.ctp(fs.access, [subapppath, fs.constants.F_OK]);
+                        subapps = await this.searchApp(subapppath);
+                        subapps.length && console.log('子应用:', subapps);
+                    } catch (error) {
+                        console.warn('子应用目录不存在:', error);
+                    }
+                }
                 apps.push({
+                    info: {},
+                    uuid: tool.uuid(),
                     name: appname,
                     plistpath: plistpath,
                     filename: filename,
@@ -278,10 +311,65 @@ var tool = {
                     birthtimeMs: stats.birthtimeMs,
                     mtimeMs: stats.mtimeMs,
                     stats: stats,
+                    issubapp: !subapp,
+                    subapps: subapps
                 });
             }
         }
         return apps;
+    },
+    $removeFile: function (file, notify) {
+        var shelljs = require("shelljs");
+        return new Promise((resolve, reject) => {
+            setTimeout(function () {
+                console.log('删除文件:', file.path, file);
+                var res;
+                try {
+                    res = shelljs.rm('-rf', file.path);
+                    console.log('删除状态:', res);
+                } catch (error) {
+                    this.msg(`删除失败:${error}`, "danger");
+                }
+                Vue.set(file, 'deling', false);
+                Vue.set(file, 'del', true);
+                notify && notify(file);
+                resolve(file);
+            }, 100);
+        })
+    },
+    removeFile: function (file, notify) {
+        Vue.set(file, 'deling', true);
+        console.log('删除文件:', file);
+        this.queue('removeapp', this.$removeFile, [file, notify], this);
+    },
+    /**
+     * osascript -e 'quit app \"safari\"'
+     * osascript -e 'tell app "CleanMyMac X" to quit'
+     * 
+     * 禁用服务
+     * /Library/LaunchDaemons/com.macpaw.CleanMyMac4.Agent.plist
+     */
+    quitApp: async function (app) {
+        var { exec } = require('child_process');
+        if (!app.closeing) {
+            var plist = app.info.plist;
+            if (plist.CFBundleName) {
+                try {
+                    app.closeing = true;
+                    await this.ctp(exec, [`osascript -e 'quit app "${plist.CFBundleName}"'`]);
+                } catch (error) {
+                    app.closeing = false;
+                    console.log('关闭app 失败:', error);
+                }
+            }
+        }
+        return app;
+    },
+    quitApps: function (apps) {
+        for (var i in apps) {
+            this.queue('removeapp', this.quitApp, [apps[i]], this);
+        }
+
     },
     /**
      * 获取 app详情
@@ -290,17 +378,32 @@ var tool = {
     appInfo: async function (app) {
         //基本信息
         var info = {
-            plist: await tool.parsePlist(app.plistpath),
-            size: await tool.fileSize(app.filepath),
+            plist: await this.parsePlist(app.plistpath),
+            size: await this.fileSize(app.filepath),
         };
         //图标
         try {
             if (info.plist.CFBundleIconFile) {
                 var iconname = info.plist.CFBundleIconFile.replace('.icns', '');
-                info.icon = await tool.parseIcns(`${app.filepath}/Contents/Resources/${iconname}.icns`)
+                info.icon = await this.parseIcns(`${app.filepath}/Contents/Resources/${iconname}.icns`)
             }
         } catch (error) {
             console.warn('图标异常:', app.name);
+        }
+
+        if (app.subapps.length) {
+            for (let i in app.subapps) {
+                this.queue("appinfo", this.appInfo, [app.subapps[i]], this).then(
+                    newapp => {
+                        newapp.loading = false;
+                        console.log("子应用App 详情:", newapp.name, newapp, newapp.info);
+                    },
+                    err => {
+                        this.msg(`子应用App:${app.name},详情异常:${err}`, "warning");
+                        console.warn(`子应用App详情异常:${app.name}`, err, app);
+                    }
+                );
+            }
         }
         app.info = Object.assign({}, info, app.info);
         return app;
@@ -310,51 +413,69 @@ var tool = {
      * @param {*} app 
      * @param {*} rules 
      */
-    appRules: async function (app, rules) {
+    appRules: function (app, rules) {
         var plist = app.info.plist;
         var os = require('os');
         var userpath = os.homedir();
-        console.log('分析文件', this, app, rules);
-        if (plist) {
-            var filerules = [];
-            console.log('appPlist:', plist);
-            for (var i in rules) {
-                var rule = rules[i];
-                console.log('获取规则文件:', rule.key, rule);
-                var temprule = Object.assign({ loading: true, files: [] }, rule);
-                if (plist[rule.key]) {
-                    temprule.value = plist[rule.key];
-                    let reg;
-                    if (typeof rule.reg == 'string') {
-                        reg = new RegExp(rule.reg.replace('__key__', plist[rule.key]));
+        return new Promise((resolve, reject) => {
+            console.log('分析文件', this, app, rules);
+            if (plist) {
+                var filerules = [], complateRule = 0;
+                var complateCb = function (rule) {
+                    complateRule++;
+                    console.log('完成:', complateRule, filerules.length, app.info);
+                    if (complateRule == filerules.length) {
+                        resolve(app);
                     }
-                    if (rule.reg && rule.reg.length) {
-                        reg = new RegExp(rule.reg[0].replace('__key__', plist[rule.key]), rule.reg[1]);
+                }
+                for (let i in rules) {
+                    let rule = rules[i];
+                    // console.log('获取规则文件:', rule.key, rule);
+                    let temprule = Object.assign({ loading: true, files: [] }, rule);
+                    let regstr, regglobal, regkey = new RegExp("__(\\w+)__", 'g'), regparm, regreplace = {};
+                    if (Array.isArray(rule.reg) && rule.reg.length) {
+                        regstr = rule.reg[0];
+                        regglobal = rule.reg[1];
+                    }
+                    if (typeof rule.reg == 'string') {
+                        regstr = rule.reg;
+                    }
+                    if (regstr) {
+                        while ((regparm = regkey.exec(regstr)) != null) {
+                            if (regparm[1] && plist[regparm[1]]) {
+                                regreplace[regparm[0]] = plist[regparm[1]];
+                                // console.log('字符替换:', regreplace);
+                            }
+                        }
+                        for (let i in regreplace) {
+                            regstr = regstr.replace(i, regreplace[i]);
+                        }
+                        // console.log('处理后正则:', regstr);
+                        temprule.regstr = regstr;
+                        temprule.regexp = new RegExp(regstr, regglobal);
                     }
                     //用户路径解析
                     temprule.path = temprule.path.replace(/^~/, userpath);
-                    temprule.regexp = reg;
-
-                    //异步载入文件数据
-                    this.appRuleFiles(temprule);
+                    this.appRuleFiles(temprule, complateCb);
+                    filerules.push(temprule);
                 }
-                filerules.push(temprule);
+                // console.log('规则信息:', filerules);
+                app.info.rules = filerules;
             }
-            console.log('规则信息:', filerules);
-            app.info = Object.assign({ rules: filerules }, app.info);
-        }
-        return app;
+            return app;
+        })
     },
-    appRuleFiles: function (rule) {
-        if (rule.value && rule.regexp) {
+    appRuleFiles: function (rule, cb) {
+        if (rule.regexp) {
             this.queue('apprulefiles', this.dirFiles, [rule.path, rule.regexp], this).then(function (files) {
                 rule.files = files;
                 console.log('规则文件列表', rule);
                 rule.loading = false;
+                cb && cb(rule);
             }, function (err) {
                 rule.loading = false;
                 rule.err = err;
-                console.log('rule file reject', err);
+                cb && cb(rule);
             })
         } else {
             console.warn('无效规则值或者规则正则');
@@ -384,11 +505,17 @@ var tool = {
             // console.log('匹配:', reg, filename, reg.test(filename));
             if (reg.test(filename)) {
                 console.log('匹配文件:', filename);
-                var filedir = path.join(filepath, filename);
-                var [stats] = await this.ctp(fs.stat, [filedir]);
-                var size = await this.fileSize(filedir);
-                var isFile = stats.isFile();//是文件
-                var isDir = stats.isDirectory();//是文件夹
+                let filedir = path.join(filepath, filename), isFile = false, isDir = false, size = 0;
+                try {
+                    await this.ctp(fs.access, [filedir, fs.constants.F_OK]);
+                    var [stats] = await this.ctp(fs.stat, [filedir]);
+                    isFile = stats.isFile();//是文件
+                    isDir = stats.isDirectory();//是文件夹
+                    size = await this.fileSize(filedir);
+                } catch (error) {
+                    isFile = true;
+                    console.warn('文件状态异常:', error);
+                }
                 dirs.push({ size: size, path: filedir, isFile: isFile, isDir: isDir, stats: stats, isApp: isApp });
             }
         }

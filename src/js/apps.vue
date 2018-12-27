@@ -1,13 +1,10 @@
 <style lang="scss">
 .app-apps {
   position: relative;
-  .media-object {
-    width: 64px;
-    height: 64px;
-    text-align: center;
-    > .fa {
-      line-height: 64px;
-      font-size: 56px;
+
+  .panel-group {
+    > section {
+      margin-bottom: 10px;
     }
   }
 }
@@ -23,8 +20,8 @@
           <div class="input-group-addon">{{dir}}/</div>
           <input type="text" class="form-control" v-model="status.search" placeholder="检索">
           <div class="input-group-btn">
-            <button id="genpassword" class="btn btn-success" type="button">
-              <i class="fa fa-search"></i>
+            <button id="genpassword" class="btn btn-success" type="button" v-on:click="reset">
+              <i class="fa fa-refresh"></i>
             </button>
           </div>
         </div>
@@ -35,95 +32,25 @@
             <i class="fa" v-bind:class="orderIcon"></i>
           </button>
           <div class="btn-group btn-group-xs">
-            <button
-              class="btn-default btn"
-              v-bind:class="{active:status.order=='name'}"
-              v-on:click="status.order='name'"
-            >默认</button>
-            <button
-              class="btn-default btn"
-              v-bind:class="{active:status.order=='atimeMs'}"
-              v-on:click="status.order='atimeMs'"
-            >访问时间</button>
-            <button
-              class="btn-default btn"
-              v-bind:class="{active:status.order=='mtimeMs'}"
-              v-on:click="status.order='mtimeMs'"
-            >修改时间</button>
-            <button
-              class="btn-default btn"
-              v-bind:class="{active:status.order=='birthtimeMs'}"
-              v-on:click="status.order='birthtimeMs'"
-            >创建时间</button>
+            <button class="btn-default btn" v-bind:class="{active:status.order=='name'}" v-on:click="status.order='name'">默认</button>
+            <button class="btn-default btn" v-bind:class="{active:status.order=='atimeMs'}" v-on:click="status.order='atimeMs'">访问时间</button>
+            <button class="btn-default btn" v-bind:class="{active:status.order=='mtimeMs'}" v-on:click="status.order='mtimeMs'">修改时间</button>
+            <button class="btn-default btn" v-bind:class="{active:status.order=='birthtimeMs'}" v-on:click="status.order='birthtimeMs'">创建时间</button>
           </div>
         </div>
         <span class="text-muted">总计:</span>
         <span>{{status.count}}</span>
+        <!-- <button class="btn btn-default" v-on:click="test">测试</button> -->
         <span class="clearfix"></span>
       </div>
     </div>
     <div class="panel panel-default" v-if="status.count==0">
       <div class="panel-body center-block" style="text-align: center;">未找到 app</div>
     </div>
-    <div
-      class="panel panel-default"
-      v-for="(app, index) in sort(search(apps,status.search),status.order,status.orderBy)"
-      :key="index"
-    >
-      <div class="panel-heading">
-        <strcolor v-bind:search="status.search" v-bind:text="app.name"></strcolor>
-        <small v-if="app.info.plist">版本:{{app.info.plist.CFBundleShortVersionString}}</small>
-        <small v-if="app.info.plist">包:{{app.info.plist.CFBundleIdentifier}}</small>
-        <small v-if="app.info.plist">应用:{{app.info.plist.CFBundleName}}</small>
-      </div>
-      <div class="panel-body">
-        <div class="media">
-          <div class="media-action pull-right">
-            <button
-              v-if="!app.info.size"
-              type="button"
-              class="btn btn-success btn-xs"
-              v-on:click="appinfo(app)"
-              v-bind:disabled="app.loading"
-            >
-              <i v-if="app.loading" class="fa fa-spinner fa-pulse"></i> 应用信息
-            </button>
-            <button
-              v-if="app.info.size"
-              type="button"
-              class="btn btn-info btn-xs"
-              v-on:click="apprules(app)"
-              v-bind:disabled="app.info.loading"
-            >
-              <i v-if="app.info.loading" class="fa fa-spinner fa-pulse"></i> 分析文件
-            </button>
-          </div>
-          <div class="media-left">
-            <img v-if="app.info.icon" :src="app.info.icon" class="media-object">
-            <div v-if="!app.info.icon" class="media-object">
-              <i class="fa fa-cube"></i>
-            </div>
-          </div>
-          <div class="media-body">
-            <div>位置:
-              <strcolor v-bind:search="status.search" v-bind:text="app.filepath"></strcolor>
-            </div>
-            <div>大小:{{app.info.size?app.info.size:'正在计算...'}}</div>
-            <div>访问时间:
-              <timestr v-bind:time="app.atimeMs"></timestr>
-            </div>
-            <div>修改时间:
-              <timestr v-bind:time="app.mtimeMs"></timestr>
-            </div>
-            <div>创建时间:
-              <timestr v-bind:time="app.birthtimeMs"></timestr>
-            </div>
-          </div>
-          <!-- 延迟显示定位点 -->
-          <lazy-component v-if="app.name" @show="lazyshow(app)"></lazy-component>
-        </div>
-        <app-rules v-if="app.info.rules" v-bind:rules="app.info.rules"></app-rules>
-      </div>
+    <div class="panel-group" v-if="apps.length>0">
+      <section v-for="(app) in sort(search(apps,status.search),status.order,status.orderBy)" :key="app.uuid">
+        <app-item v-bind:status="status" v-bind:app="app"></app-item>
+      </section>
     </div>
   </section>
 </template>
@@ -148,16 +75,6 @@ module.exports = {
         count: 0,
         loading: true,
         title: "Mac优化工具 Example page header"
-      },
-      objtpl: {
-        app: {
-          //app 对象基础属性
-          info: {
-            // size: '计算中...',
-            // icon: '',
-            // plist: '',
-          }
-        }
       }
     };
   },
@@ -172,46 +89,27 @@ module.exports = {
   },
   components: {
     //组件
-    "app-rules": require("./rules")
   },
   methods: {
+    test: function() {
+      tool.msg("怎么了");
+      tool
+        .confirm({
+          title: "警告!",
+          desc: "删除文件:",
+          type: "danger"
+        })
+        .then(
+          function(item) {
+            console.log("确定", item);
+          },
+          function(err) {
+            console.log("取消", err);
+          }
+        );
+    },
     msg: function() {
       tool.msg("怎么了");
-    },
-    lazyshow: function(app) {
-      var that = this;
-      that.appinfo(app);
-    },
-    appinfo: function(app) {
-      this.$set(app, "loading", true);
-      tool.queue("appinfo", tool.appInfo, [app], tool).then(
-        newapp => {
-          newapp.loading = false;
-          console.log("App 详情:", newapp.name, newapp, newapp.info);
-        },
-        err => {
-          tool.msg(`App:${app.name},详情异常:${err}`, "warning");
-          console.warn(`App详情异常:${app.name}`, err, app);
-        }
-      );
-    },
-    apprules: function(app) {
-      if (app.info.plist) {
-        this.$set(app.info, "loading", true);
-        tool
-          .queue("apprules", tool.appRules, [app, ruleconfig.rules], tool)
-          .then(
-            newapp => {
-              newapp.info.loading = false;
-              console.log("App 文件分析完成:", newapp.name, newapp);
-            },
-            err => {
-              console.error(`App文件分析异常:${app.name}`, err, app);
-            }
-          );
-      } else {
-        tool.msg("app基础信息异常:", "warning");
-      }
     },
     toggleSort: function(sort) {
       this.status.orderBy = sort == "desc" ? "asc" : "desc";
@@ -252,14 +150,18 @@ module.exports = {
       this.status.loading = true;
       console.log("loading", this.status.loading);
     },
+    reset: function() {
+      this.apps = [];
+      this.init();
+    },
     init: function() {
       var that = this;
       console.log("apps init:", ruleconfig);
       that.status.loading = true;
-      tool.searchApp(that.dir).then(
+      tool.searchApp(that.dir, true).then(
         function(apps) {
           apps.forEach(app => {
-            that.apps.push(Object.assign({}, that.objtpl.app, app));
+            that.apps.push(Object.assign({}, app));
           });
           console.log("app", that.apps);
           tool.msg(`搜索 App完成`, "success");

@@ -8,111 +8,124 @@ module.exports = {
             path: '/Applications',
             title: '应用',
             style: 'info',
-            key: 'CFBundleName',
-            reg: ['^__key__\.app?', 'i'],//正则数据 切勿使用 g
+            reg: ['^(__CFBundleName__|__CFBundleIdentifier__)\.app?', 'i'],//正则数据 切勿使用 g,字段替换未 plist 内存在值
         },
         //系统资源库
         {
             path: '/Library',
             title: '系统资源库',
-            style: 'warning',
-            key: 'CFBundleName',
-            reg: ['^__key__.*?', 'i'],//正则数据
+            style: 'danger',
+            reg: ['^(__CFBundleName__|__CFBundleIdentifier__).*?', 'i'],//正则数据
         },
-        //系统资源库
         {
             path: '/Library/Logs',
             title: '日志文件',
             style: 'warning',
-            key: 'CFBundleName',
-            reg: ['^__key__.*?', 'i'],//正则数据
+            reg: ['^(__CFBundleName__|__CFBundleIdentifier__).*?', 'i'],//正则数据
+        },
+        {
+            path: '/Library/Extensions',
+            title: '',
+            style: 'warning',
+            reg: ['^(__CFBundleName__|__CFBundleIdentifier__).*?', 'i'],//正则数据
+        },
+        {
+            path: '/Library/Preferences',
+            title: '系统支持文件',
+            style: 'warning',
+            reg: ['^(__CFBundleName__|__CFBundleIdentifier__).*?', 'i'],//正则数据
+        },
+        {
+            path: '/Library/PreferencePanes',
+            title: '系统支持文件',
+            style: 'warning',
+            reg: ['^(__CFBundleName__|__CFBundleIdentifier__).*?', 'i'],//正则数据
+        },
+        {
+            path: '/Library/LaunchAgents',
+            title: '系统启动配置',
+            style: 'warning',
+            reg: ['^(__CFBundleIdentifier__).*?', 'i'],//正则数据
+        },
+        {
+            path: '/Library/LaunchDaemons',
+            title: '系统守护配置',
+            style: 'warning',
+            reg: ['^(__CFBundleIdentifier__).*?', 'i'],//正则数据
         },
         {
             path: '/Library/Logs/DiagnosticReports',
             title: '日志文件',
             style: 'warning',
-            key: 'CFBundleName',
-            reg: ['^__key__.*?', 'i'],//正则数据
+            reg: ['^(__CFBundleName__|__CFBundleIdentifier__).*?', 'i'],//正则数据
         },
-        // //用户资源库
+        //用户资源库
         {
             path: '~/Library',
             title: '资源库',
-            style: 'success',
-            key: 'CFBundleName',
-            reg: ['^__key__.*?', 'i'],
+            style: 'warning',
+            reg: ['^(__CFBundleName__|__CFBundleIdentifier__).*?', 'i'],
         },
-        {
-            path: '~/Library',
-            title: '资源库',
-            style: 'success',
-            key: 'CFBundleIdentifier',
-            reg: ['^__key__.*?', 'i'],
-        },
+
         {
             path: '~/Library/LaunchAgents',
-            title: '启动文件',
-            style: 'success',
-            key: 'CFBundleIdentifier',
-            reg: ['^__key__.*?', 'i'],
+            title: '启动配置',
+            style: 'warning',
+            reg: ['^(__CFBundleName__|__CFBundleIdentifier__).*?', 'i'],
         },
         {
-            path: '~/Library/Application Support/CrashReporter',
-            title: '支持文件',
-            style: 'success',
-            key: 'CFBundleName',
-            reg: ['^__key__.*?', 'i'],
+            path: '~/Library/Containers',
+            title: '容器',
+            style: 'danger',
+            reg: ['^(__CFBundleName__|__CFBundleIdentifier__).*?', 'i'],
         },
         {
-            path: '~/Library/Application Support',
-            title: '支持文件',
+            path: '~/Library/Saved Application State',
+            title: '应用存储状态',
             style: 'success',
-            key: 'CFBundleName',
-            reg: ['^__key__.*?', 'i'],
+            reg: ['^(__CFBundleName__|__CFBundleIdentifier__).*?', 'i'],
         },
         {
             path: '~/Library/Application Support',
             title: '支持文件',
             style: 'success',
-            key: 'CFBundleIdentifier',
-            reg: ['^__key__.*?', 'i'],
+            reg: ['^(__CFBundleName__|__CFBundleIdentifier__).*?', 'i'],
         },
         {
-            path: '~/Library/Application Support/CrashReporter',
+            path: '~/Library/Application Scripts',
             title: '支持文件',
             style: 'success',
-            key: 'CFBundleName',
-            reg: ['^__key__.*?', 'i'],
+            reg: ['^(__CFBundleName__|__CFBundleIdentifier__).*?', 'i'],
         },
         {
             path: '~/Library/Preferences',
-            title: '支持文件',
+            title: '偏好设置',
             style: 'success',
-            key: 'CFBundleIdentifier',
-            reg: ['^__key__.*?', 'i'],
+            reg: ['^(__CFBundleName__|__CFBundleIdentifier__).*?', 'i'],
+        },
+        {
+            path: '~/Library/PreferencePanes',
+            title: '',
+            style: 'success',
+            reg: ['^(__CFBundleName__|__CFBundleIdentifier__).*?', 'i'],
         },
         {
             path: '~/Library/Cookies',
             title: 'Cookie',
             style: 'success',
-            key: 'CFBundleIdentifier',
-            reg: ['^__key__.*?', 'i'],
+            reg: ['^(__CFBundleName__|__CFBundleIdentifier__).*?', 'i'],
         },
         {
             path: '~/Library/Caches',
             title: '缓存',
             style: 'success',
-            key: 'CFBundleIdentifier',
-            reg: ['^__key__.*?', 'i'],
+            reg: ['^(__CFBundleName__|__CFBundleIdentifier__).*?', 'i'],
         },
-
         {
-            path: '~/Library/Containers',
-            title: '容器',
-            style: 'success',
-            key: 'CFBundleIdentifier',
-            reg: ['^__key__.*?', 'i'],
+            path: '~/Library/Application Support/CrashReporter',
+            title: '崩溃日志',
+            style: 'warning',
+            reg: ['^(__CFBundleName__|__CFBundleIdentifier__).*?', 'i'],
         },
-
     ]
 }

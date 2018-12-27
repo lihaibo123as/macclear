@@ -29,6 +29,8 @@ module.exports = {
     Vue.component("msgdriver", require("./js/component/msgdriver"));
     Vue.component("strcolor", require("./js/component/strcolor"));
     Vue.component("timestr", require("./js/component/timestr"));
+    Vue.component("errmsg", require("./js/component/errmsg"));
+    Vue.component("app-item", require("./js/app"));
     //第三方插件
     Vue.use(require("../node_modules/vue-lazyload/vue-lazyload.js"), {
       lazyComponent: true

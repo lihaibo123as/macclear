@@ -20,6 +20,8 @@
 #### 安装教程
 
 1. 安装 nwjs 开发版,开发版,开发版 重要的事情说三遍
+   1. 下载开发版 nwjs
+   2. 配置别名: alias nw='/存放开发版目录/nwjs.app/Contents/MacOS/nwjs'
 2. npm install
 
 #### 使用说明
