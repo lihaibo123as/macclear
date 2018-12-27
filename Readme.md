@@ -23,6 +23,7 @@
    1. 下载开发版 nwjs
    2. 配置别名: alias nw='/存放开发版目录/nwjs.app/Contents/MacOS/nwjs'
 2. npm install
+3. 生产环境安装: npm install --product
 
 #### 使用说明
 
