@@ -163,7 +163,7 @@ module.exports = {
           apps.forEach(app => {
             that.apps.push(Object.assign({}, app));
           });
-          console.log("app", that.apps);
+          console.log("App 列表", that.apps);
           tool.msg(`搜索 App完成`, "success");
           that.status.loading = false;
         },

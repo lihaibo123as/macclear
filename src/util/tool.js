@@ -87,6 +87,23 @@ var tool = {
             console.warn('消息驱动未初始化', window.msgdriver);
         }
     },
+    /**
+     * 提示框
+     * @param {*} config {
+          show: false,
+          title: "提示",
+          desc: "",
+          type: "info",
+          value: "",
+          input: false,
+          ok: {title:'确定'},
+          cancel: {title:'取消'}
+        }
+     * @returns ok:{
+          value: "", //input true 的情况下用户输入的值
+          input: false,
+        }
+     */
     confirm: function (config) {
         var driver = window.msgdriver;
         if (driver) {
@@ -295,7 +312,7 @@ var tool = {
                     try {
                         await this.ctp(fs.access, [subapppath, fs.constants.F_OK]);
                         subapps = await this.searchApp(subapppath);
-                        subapps.length && console.log('子应用:', subapps);
+                        // subapps.length && console.log('子应用:', subapps);
                     } catch (error) {
                         console.warn('子应用目录不存在:', error);
                     }
@@ -418,12 +435,12 @@ var tool = {
         var os = require('os');
         var userpath = os.homedir();
         return new Promise((resolve, reject) => {
-            console.log('分析文件', this, app, rules);
+            // console.log('分析文件', this, app, rules);
             if (plist) {
                 var filerules = [], complateRule = 0;
                 var complateCb = function (rule) {
                     complateRule++;
-                    console.log('完成:', complateRule, filerules.length, app.info);
+                    // console.log('完成:', complateRule, filerules.length, app.info);
                     if (complateRule == filerules.length) {
                         resolve(app);
                     }
@@ -469,7 +486,7 @@ var tool = {
         if (rule.regexp) {
             this.queue('apprulefiles', this.dirFiles, [rule.path, rule.regexp], this).then(function (files) {
                 rule.files = files;
-                console.log('规则文件列表', rule);
+                // console.log('规则文件列表', rule);
                 rule.loading = false;
                 cb && cb(rule);
             }, function (err) {
@@ -504,7 +521,7 @@ var tool = {
             reg.lastIndex = 0;
             // console.log('匹配:', reg, filename, reg.test(filename));
             if (reg.test(filename)) {
-                console.log('匹配文件:', filename);
+                // console.log('匹配文件:', filename);
                 let filedir = path.join(filepath, filename), isFile = false, isDir = false, size = 0;
                 try {
                     await this.ctp(fs.access, [filedir, fs.constants.F_OK]);

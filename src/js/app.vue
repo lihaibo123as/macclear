@@ -63,7 +63,7 @@
         <a class="app-action label label-danger" v-if="!app.del&&app.info.rules" v-on:click="appremove(app)">
           <i class="fa fa-trash"></i> 删除
         </a>
-        <span v-if="app.del" class="app-action label label-success">已删除</span>
+        <span v-if="app.del" class="label label-success">已删除</span>
       </div>
       <span class="app-sub-icon">
         <i class="fa fa-microchip"></i> 子应用 :
@@ -163,6 +163,11 @@ module.exports = Vue.extend({
     },
     appinfo: function(app) {
       this.$set(app, "loading", true);
+      if (app.subapps.length) {
+        for (var i in app.subapps) {
+          this.appinfo(app.subapps[i]);
+        }
+      }
       tool.queue("appinfo", tool.appInfo, [app], tool).then(
         newapp => {
           newapp.loading = false;
@@ -175,6 +180,11 @@ module.exports = Vue.extend({
       );
     },
     apprules: function(app) {
+      if (app.subapps.length) {
+        for (var i in app.subapps) {
+          this.apprules(app.subapps[i]);
+        }
+      }
       if (app.info.plist) {
         this.$set(app.info, "loading", true);
         this.$set(app.info, "rules", []);
@@ -199,17 +209,21 @@ module.exports = Vue.extend({
     appremove: function(app) {
       tool
         .confirm({
-          title: "警告!",
+          title: "删除应用?",
           desc: `请输入应用名: <b class="text-danger">${
             app.name
-          }</b> ,点击确定删除?`,
+          }</b> ,点击确定删除`,
           type: "warning",
           input: true
         })
         .then(
           item => {
             console.log("确定", item);
-            if (item.value.trim() == app.name) {
+            if (!item.value) {
+              tool.msg("请输入应用名称", "info");
+              return;
+            }
+            if (item.value && item.value.trim() == app.name) {
               console.log("删除", app);
               this._appremove(app);
             }
@@ -219,14 +233,15 @@ module.exports = Vue.extend({
           }
         );
     },
-    _appremove: function(app, check) {
+    _appremove: function(app) {
       console.log("删除 app", app);
-      let delcount = 0;
-      var notify = () => {
-        console.log("notify", app);
-        this._appremove(app);
-      };
-      var apps = [];
+      let delcount = 0,
+        apps = [],
+        rules = [],
+        notify = () => {
+          console.log("notify", app);
+          this._appremove(app);
+        };
       apps.push(app);
       if (app.subapps.length) {
         for (var i in app.subapps) {
@@ -235,9 +250,17 @@ module.exports = Vue.extend({
       }
       console.log("关闭应用:", apps);
       tool.quitApps(apps);
-      if (app.info.rules) {
-        for (var i in app.info.rules) {
-          let rule = app.info.rules[i];
+
+      for (var i in apps) {
+        if (apps[i].info.rules) {
+          rules = rules.concat(apps[i].info.rules);
+        }
+      }
+
+      console.log("处理规则列表", rules);
+      if (rules.length) {
+        for (var i in rules) {
+          let rule = rules[i];
           if (rule.files && rule.files.length) {
             for (var j in rule.files) {
               if (rule.files[j].err) {
@@ -257,7 +280,7 @@ module.exports = Vue.extend({
         }
         if (delcount == 0) {
           console.log("清理完成:", app);
-          tool.msg("应用清理完成", "success");
+          tool.msg("删除应用完成", "success");
           this.$set(app, "del", true);
         }
       }
