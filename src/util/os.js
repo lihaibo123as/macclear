@@ -18,6 +18,6 @@ os.debug = function () {
         }
     }
     var win = nw.Window.get();
-    win.showDevTools();
+    // win.showDevTools();
 }
 module.exports = os;

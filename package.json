@@ -1,13 +1,28 @@
 {
   "name": "MacClear",
   "version": "1.0.0",
-  "description": "帮助Mac 用户完全删除 App ,清理历史残留文件,提交 bug :154624410",
+  "description": "帮助Mac 用户完全删除 App ,清理历史残留文件.",
   "main": "index.html",
+  "icon": "logo.png",
   "chromium-args": "--mixed-context --load-extension='./node_modules/nw-vue-devtools/extension'",
   "scripts": {
     "start": "gulp && nw .",
     "build": "gulp",
-    "watch": "gulp watch"
+    "watch": "gulp watch",
+    "zipapp": "gulp && zip -r app.nw * -x \"./src\""
+  },
+  "window": {
+    "toolbar": true,
+    "width": 900,
+    "height": 600,
+    "min_width": 900,
+    "min_height": 600,
+    "icon": "logo.png",
+    "resizable": true,
+    "frame": true
+  },
+  "webkit": {
+    "plugin": true
   },
   "author": "lihaibo123as@163.com",
   "license": "MIT License - http://opensource.org/licenses/mit-license.php",

@@ -28,7 +28,9 @@
 
 1. 运行调试:npm run start
 2. 文件监听:npm run watch  or  gulp watch
-3. 编译app:
+3. app打包:可看需求自行安装,也可直接运行,功能无差别.
+   - 参考1:https://www.jianshu.com/p/5d2adad04b44
+   - 参考2:https://segmentfault.com/a/1190000007564694
 
 #### 参与贡献
 

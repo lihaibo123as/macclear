@@ -107,7 +107,7 @@
           <div class="app-sign" v-if="app.info.plist">
             应用名:
             <span class="text-info">{{app.info.plist.CFBundleName}}</span>
-            包名:
+            标识:
             <span class="text-info">{{app.info.plist.CFBundleIdentifier}}</span>
           </div>
           <div class="app-time">
